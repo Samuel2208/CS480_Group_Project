@@ -1,5 +1,5 @@
 -- Drop tables if they exist for a clean reset
-DROP TABLE IF EXISTS Review, Rent, ClientAddress, CreditCard, DriverCarModel, Driver, Client, Manager, CarModel, Car, Address CASCADE;
+DROP TABLE IF EXISTS Review, Rent, ClientAddress, CreditCard, DriverModel, Driver, Client, Manager, Model, Car, Address CASCADE;
 
 -- Enum for transmission type
 DROP TYPE IF EXISTS transmission_type CASCADE;
@@ -60,9 +60,9 @@ CREATE TABLE Car (
 );
 
 -- ====================
--- Car Model (1:1 with Car)
+-- Model (1:1 with Car)
 -- ====================
-CREATE TABLE CarModel (
+CREATE TABLE Model (
     car_id INT REFERENCES Car(car_id) ON DELETE CASCADE,
     model_id INT NOT NULL,
     color VARCHAR(50) NOT NULL,
@@ -81,14 +81,14 @@ CREATE TABLE Driver (
 );
 
 -- ====================
--- Driver-CarModel Mapping (many-to-many)
+-- Driver-Model Mapping (many-to-many)
 -- ====================
-CREATE TABLE DriverCarModel (
+CREATE TABLE DriverModel (
     driver_id INT REFERENCES Driver(driver_id) ON DELETE CASCADE,
     car_id INT NOT NULL,
     model_id INT NOT NULL,
     PRIMARY KEY (driver_id, car_id, model_id),
-    FOREIGN KEY (car_id, model_id) REFERENCES CarModel(car_id, model_id) ON DELETE CASCADE
+    FOREIGN KEY (car_id, model_id) REFERENCES Model(car_id, model_id) ON DELETE CASCADE
 );
 
 -- ====================
@@ -101,7 +101,7 @@ CREATE TABLE Rent (
     driver_id INT REFERENCES Driver(driver_id) NOT NULL,
     car_id INT NOT NULL,
     model_id INT NOT NULL,
-    FOREIGN KEY (car_id, model_id) REFERENCES CarModel(car_id, model_id) ON DELETE CASCADE,
+    FOREIGN KEY (car_id, model_id) REFERENCES Model(car_id, model_id) ON DELETE CASCADE,
     UNIQUE (rent_date, driver_id),
     UNIQUE (rent_date, car_id)
 );
