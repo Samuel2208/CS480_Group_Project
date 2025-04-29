@@ -2,6 +2,10 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_migrate import Migrate
+from dotenv import load_dotenv
+import os
+
+DATABASE_URI = os.getenv('DATABASE_URL')
 
 class Base(DeclarativeBase):
   pass
@@ -12,8 +16,8 @@ def create_app():
     app = Flask(__name__, template_folder='templates')
 
     # db configuration
-    # db connection URL uses the format: "dialect://username:password@host:port/database"
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1473019Sirmono01!@localhost:5432/service'
+    # db connection URI uses the format: "dialect://username:password@host:port/database"
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 
     db.init_app(app)
 
