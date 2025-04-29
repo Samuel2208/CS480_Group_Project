@@ -1,0 +1,13 @@
+The repo utilizes uv so install that: https://docs.astral.sh/uv/getting-started/installation/
+
+'uv venv' to make your enviroment
+'uv sync' to sync dependencies with your env
+'uv add "package name"' to add a new dependency
+'uv run run.py' to run the app
+
+To init db (only once): 'flask db init'
+To implement changes (whenever you change anything about db): 'flask db migrate' then 'flask db upgrade'
+To check if you are connected to db: 'uv run check_db.py'
+
+References: 
+https://www.youtube.com/watch?v=RUUmEOooKVo 
