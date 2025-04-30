@@ -1,0 +1,17 @@
+{% extends "base.html" %} {% block title %}Search Available Cars{% endblock %}
+{% block content %}
+<h1>Search for Available Cars</h1>
+<form action="/search-cars" method="GET">
+  <label for="date">Date:</label>
+  <input type="date" id="date" name="date" required />
+
+  <button type="submit">Search</button>
+</form>
+
+<h2>Available Cars</h2>
+<ul>
+  {% for car in available_cars %}
+  <li>{{ car.name }} - {{ car.model }} - Available on selected date</li>
+  {% endfor %}
+</ul>
+{% endblock %}

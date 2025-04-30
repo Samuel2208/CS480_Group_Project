@@ -1,0 +1,17 @@
+{% extends "base.html" %} {% block title %}Book Rent{% endblock %} {% block
+content %}
+<h1>Book a Rent</h1>
+<form method="POST" action="/book-rent">
+  <label for="car_model">Car Model:</label>
+  <select id="car_model" name="car_model" required>
+    {% for model in available_models %}
+    <option value="{{ model.id }}">{{ model.name }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="date">Rent Date:</label>
+  <input type="date" id="date" name="date" required />
+
+  <button type="submit">Book</button>
+</form>
+{% endblock %}

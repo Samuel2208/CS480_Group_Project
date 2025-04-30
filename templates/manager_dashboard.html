@@ -1,0 +1,12 @@
+{% extends "base.html" %} {% block title %}Manager Dashboard{% endblock %} {%
+block content %}
+<h1>Manager Dashboard</h1>
+<p>Welcome, {{ manager_name }}! What would you like to do?</p>
+<ul>
+  <li><a href="/add-driver">Add Driver</a></li>
+  <li><a href="/remove-driver">Remove Driver</a></li>
+  <li><a href="/add-car">Add Car</a></li>
+  <li><a href="/remove-car">Remove Car</a></li>
+  <li><a href="/top-clients">View Top Clients</a></li>
+</ul>
+{% endblock %}

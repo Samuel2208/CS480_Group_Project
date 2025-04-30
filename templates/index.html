@@ -1,11 +1,10 @@
-{% extends "base.html" %}
-{% block title %}Index{% endblock %}
-
-{% block content %}
-    <h1>Index</h1>
-    <ul>
-        {% for x in people %}
-            <li>{{ x }}</li>
-        {% endfor %}
-    </ul>
+{% extends "base.html" %} {% block title %}Home{% endblock %} {% block content
+%}
+<h1>Welcome to Taxi Rental Management</h1>
+<p>Manage your taxis, drivers, clients, and bookings with ease.</p>
+<ul>
+  <li><a href="/register-manager">Register as Manager</a></li>
+  <li><a href="/login-client">Login as Client</a></li>
+  <li><a href="/login-driver">Login as Driver</a></li>
+</ul>
 {% endblock %}

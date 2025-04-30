@@ -1,0 +1,11 @@
+{% extends "base.html" %} {% block title %}Client Dashboard{% endblock %} {%
+block content %}
+<h1>Client Dashboard</h1>
+<p>
+  Welcome, {{ client_name }}! You can book a car or view your past bookings.
+</p>
+<ul>
+  <li><a href="/book-rent">Book a Car</a></li>
+  <li><a href="/view-rents">View Your Bookings</a></li>
+</ul>
+{% endblock %}

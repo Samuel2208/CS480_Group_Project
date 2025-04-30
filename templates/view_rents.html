@@ -1,0 +1,12 @@
+{% extends "base.html" %} {% block title %}Your Bookings{% endblock %} {% block
+content %}
+<h1>Your Bookings</h1>
+<ul>
+  {% for rent in rents %}
+  <li>
+    Rent ID: {{ rent.id }} | Car: {{ rent.car_model }} | Driver: {{ rent.driver
+    }} | Date: {{ rent.date }}
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}
