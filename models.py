@@ -6,6 +6,9 @@ class Person(db.Model):
     __tablename__ = 'people'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(100), unique=True)
+    address = db.Column(db.String(200))
+    credit_card = db.Column(db.String(50)) 
     age = db.Column(db.Integer, nullable=False)
 
 # Manager class with ssn as primary key, name, and email
