@@ -1,12 +1,12 @@
 from flask import render_template, request, redirect, url_for
-from models import Person, Manager, Car, Model, Driver, Address
+from models import Client, Driver, Manager, Address, ClientAddress, CreditCard, Car, Model
+from flask import flash
 
 def register_routes(app, db):
     # Routing back to the home page
     @app.route('/')
     def index():
-        people = Person.query.all()
-        return render_template('index.html', people=people)
+        return render_template('index.html')
 
     @app.route('/login-client', methods=['GET', 'POST'])
     def login_client():
@@ -14,7 +14,7 @@ def register_routes(app, db):
             email = request.form['email']
             
             # Check if the client exists (you can use your database model here)
-            client = Person.query.filter_by(email=email).first()
+            client = Client.query.filter_by(email=email).first()
             
             if client:
                 # Redirect the client to their dashboard or another page after successful login
@@ -51,13 +51,42 @@ def register_routes(app, db):
         if request.method == 'POST':
             name = request.form['name']
             email = request.form['email']
-            address = request.form['address']
-            credit_card = request.form['credit-card']
+            street = request.form['street']
+            number = request.form['number']
+            city = request.form['city']
+            card_number = request.form['credit-card']
 
-            # Assuming your Person model has name, email, address, and credit_card fields
-            new_client = Person(name=name, email=email, address=address, credit_card=credit_card)
+            # Step 1: Ensure address exists
+            address = Address.query.filter_by(street=street, number=number, city=city).first()
+            if not address:
+                address = Address(street=street, number=number, city=city)
+                db.session.add(address)
+                db.session.commit()
 
+            # Step 2: Create client
+            new_client = Client(name=name, email=email)
             db.session.add(new_client)
+            db.session.commit()
+
+            # Step 3: Add client address
+            client_address = ClientAddress(
+                client_id=new_client.client_id,
+                street=street,
+                number=number,
+                city=city
+            )
+            db.session.add(client_address)
+
+            # Step 4: Add credit card
+            credit_card = CreditCard(
+                card_number=card_number,
+                client_id=new_client.client_id,
+                street=street,
+                number=number,
+                city=city
+            )
+            db.session.add(credit_card)
+
             db.session.commit()
 
             return f"""
@@ -69,6 +98,45 @@ def register_routes(app, db):
             """
 
         return render_template('register_client.html')
+
+    @app.route('/register-driver', methods=['GET', 'POST'])
+    def register_driver():
+        if request.method == 'POST':
+            name = request.form['name']
+            number = request.form['number']
+            street = request.form['street']
+            city = request.form['city']
+
+            # Step 1: Ensure address exists
+            address = Address.query.filter_by(street=street, number=number, city=city).first()
+            if not address:
+                address = Address(street=street, number=number, city=city)
+                db.session.add(address)
+                db.session.commit()
+
+            # Step 2: Check if driver already exists
+            existing_driver = Driver.query.filter_by(name=name).first()
+            if existing_driver:
+                return """
+                    <h2>❌ Driver with that name already exists.</h2>
+                    <p><a href="/register-driver">Try Again</a></p>
+                """
+
+            # Step 3: Create new driver
+            new_driver = Driver(name=name, street=street, number=number, city=city)
+            db.session.add(new_driver)
+            db.session.commit()
+
+            # Step 4: Show success message
+            return f"""
+                <h2>✅ Driver {name} registered successfully!</h2>
+                <p><a href="/">Return to Home</a></p>
+                <form action="/login-driver" method="get">
+                    <button type="submit">Login Now</button>
+                </form>
+            """
+
+        return render_template('register_driver.html')
 
 
     # Routing to registering a new manager screen
