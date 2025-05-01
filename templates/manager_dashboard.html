@@ -1,12 +1,15 @@
 {% extends "base.html" %} {% block title %}Manager Dashboard{% endblock %} {%
 block content %}
 <h1>Manager Dashboard</h1>
-<p>Welcome, {{ manager_name }}! What would you like to do?</p>
+<h2>Welcome, {{ manager.name }}!</h2>
+<p><strong>SSN:</strong> {{ manager.ssn }}</p>
+<p><strong>Email:</strong> {{ manager.email }}</p>
+
 <ul>
-  <li><a href="/add-driver">Add Driver</a></li>
-  <li><a href="/remove-driver">Remove Driver</a></li>
-  <li><a href="/add-car">Add Car</a></li>
-  <li><a href="/remove-car">Remove Car</a></li>
-  <li><a href="/top-clients">View Top Clients</a></li>
+  <li><a href="/manage-cars-models", ssn=manager.ssn>Add/Remove Cars and Models</a></li>
+  <li><a href="/manage-drivers", ssn=manager.ssn>Manage Drivers</a></li>
 </ul>
+
+<p><a href="/">Sign Out</a></p>
+
 {% endblock %}

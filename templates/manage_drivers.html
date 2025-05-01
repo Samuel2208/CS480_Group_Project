@@ -1,0 +1,41 @@
+<h1>Driver Manager</h1>
+<h2>All Drivers</h2>
+{% if drivers %}
+  <ul>
+    {% for driver in drivers %}
+      <li>
+        {{ driver.name }} (ID: {{ driver.driverid }}, Email: {{ driver.email }})<br>
+        Address: {{ driver.number }} {{ driver.street }}, {{ driver.city }}
+        <form method="POST" action="/manage-drivers?ssn={{ manager_ssn }}" style="display:inline;">
+          <input type="hidden" name="form_type" value="remove_driver">
+          <input type="hidden" name="driverid" value="{{ driver.driverid }}">
+          <button type="submit">Remove</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No drivers registered yet.</p>
+{% endif %}
+
+<hr>
+<h2>Add New Driver</h2>
+<form method="POST" action="/manage-drivers?ssn={{ manager_ssn }}">
+  <input type="hidden" name="form_type" value="add_driver">
+  <label>Driver ID:</label>
+  <input type="number" name="driverid" required><br>
+  <label>Name:</label>
+  <input type="text" name="name" required><br>
+  <label>Email:</label>
+  <input type="email" name="email" required><br>
+  <label>Number:</label>
+  <input type="text" name="number" required><br>
+  <label>Street:</label>
+  <input type="text" name="street" required><br>
+  <label>City:</label>
+  <input type="text" name="city" required><br>
+  <button type="submit">Add Driver</button>
+</form>
+
+<hr>
+<p><a href="{{ url_for('manager_dashboard', ssn=manager_ssn) }}">Return to Dashboard</a></p>
