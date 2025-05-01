@@ -64,7 +64,9 @@ def register_routes(app, db):
     # Managing cars and models together for managers
     @app.route('/manage-cars-models', methods=['GET', 'POST'])
     def manage_cars_models():
-        ssn = request.args.get('ssn', '1')
+        ssn = request.args.get('ssn')
+        if not ssn:
+            return "Missing manager SSN", 400
 
         if request.method == 'POST':
             form_type = request.form.get('form_type')
@@ -107,7 +109,9 @@ def register_routes(app, db):
 
     @app.route('/manage-drivers', methods=['GET', 'POST'])
     def manage_drivers():
-        ssn = request.args.get('ssn', '1')
+        ssn = request.args.get('ssn')
+        if not ssn:
+            return "Missing manager SSN", 400
 
         if request.method == 'POST':
             form_type = request.form.get('form_type')
