@@ -7,7 +7,7 @@
 {% for car in cars %}
   <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
     <strong>{{ car.carid }} - {{ car.brand }}</strong>
-    <form method="POST" action="/manage-cars-models" style="display:inline;">
+    <form method="POST" action="/manage-cars-models?ssn={{ manager_ssn }}" style="display:inline;">
       <input type="hidden" name="form_type" value="remove_car">
       <input type="hidden" name="carid" value="{{ car.carid }}">
       <button type="submit">Remove Car</button>
@@ -19,7 +19,7 @@
           <li>
             Model {{ model.modelid }}:
             {{ model.color }}, {{ model.construction_year }}, {{ model.transmission }}
-            <form method="POST" action="/manage-cars-models" style="display:inline;">
+            <form method="POST" action="/manage-cars-models?ssn={{ manager_ssn }}" style="display:inline;">
               <input type="hidden" name="form_type" value="remove_model">
               <input type="hidden" name="carid" value="{{ model.carid }}">
               <input type="hidden" name="modelid" value="{{ model.modelid }}">
@@ -35,7 +35,7 @@
 <hr>
 
 <h2>Add New Car</h2>
-<form method="POST" action="/manage-cars-models">
+<form method="POST" action="/manage-cars-models?ssn={{ manager_ssn }}">
   <input type="hidden" name="form_type" value="add_car">
   <label>Car ID:</label>
   <input type="number" name="carid" required><br>
@@ -47,7 +47,7 @@
 <hr>
 
 <h2>Add New Model</h2>
-<form method="POST" action="/manage-cars-models">
+<form method="POST" action="/manage-cars-models?ssn={{ manager_ssn }}">
   <input type="hidden" name="form_type" value="add_model">
   <label>Car ID:</label>
   <select name="carid" required>
