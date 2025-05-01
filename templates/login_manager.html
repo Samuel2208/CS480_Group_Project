@@ -1,0 +1,10 @@
+{% extends "base.html" %} {% block title %}Driver Login{% endblock %} {% block
+content %}
+<h1>Manager Login</h1>
+<form method="POST" action="/login-manager">
+  <label for="ssn">SSN:</label>
+  <input type="text" id="ssn" name="ssn" required />
+
+  <button type="submit">Login</button>
+</form>
+{% endblock %}

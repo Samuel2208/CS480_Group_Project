@@ -1,1 +1,54 @@
+# Ignore all garbage files
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+env/
+venv/
+ENV/
+
+# Environment variable / secrets
 .env
+
+# VS Code settings
+.vscode/
+
+# Flask instance folder (optional)
+instance/
+
+# Migrations cache (keep actual migrations folder)
+migrations/__pycache__/
+migrations/*.pyc
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Log files
+*.log
+
+# DB files (if you're using SQLite locally)
+*.sqlite3
+*.db
+
+# Python egg info
+*.egg-info/
+*.egg
+
+# Coverage reports and testing artifacts
+htmlcov/
+.coverage
+.cache/
+.tox/
+.nosetests.xml
+pytest_cache/
+
+# Package lock or build artifacts
+dist/
+build/
+*.lock
