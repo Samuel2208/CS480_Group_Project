@@ -399,6 +399,86 @@ def register_routes(app, db):
 
         return render_template('client_cross_city.html', results=results, manager_ssn=ssn)
 
+    # Route for drivers to manage their cars
+    @app.route('/manage-cars/<driver_id>', methods=['GET', 'POST'])
+    def driver_manage_cars(driver_id):
+        driver = Driver.query.filter_by(driverid=driver_id).first()
+        if not driver:
+            return "Driver not found", 404
+
+        # Get all car models this driver can drive
+        driver_models = db.session.query(
+            DriverModel, Car, Model
+        ).join(
+            Model, (DriverModel.carid == Model.carid) & (DriverModel.modelid == Model.modelid)
+        ).join(
+            Car, DriverModel.carid == Car.carid
+        ).filter(
+            DriverModel.driverid == driver_id
+        ).all()
+
+        # Get all available car models not assigned to this driver
+        available_models = db.session.query(
+            Model, Car
+        ).join(
+            Car, Model.carid == Car.carid
+        ).outerjoin(
+            DriverModel, (Model.carid == DriverModel.carid) & 
+                         (Model.modelid == DriverModel.modelid) & 
+                         (DriverModel.driverid == driver_id)
+        ).filter(
+            DriverModel.driverid == None
+        ).all()
+
+        if request.method == 'POST':
+            form_type = request.form.get('form_type')
+
+            if form_type == 'add_model':
+                car_model = request.form.get('car_model')
+                if car_model:
+                    carid, modelid = map(int, car_model.split('-'))
+                    
+                    # Check if assignment already exists
+                    existing = DriverModel.query.filter_by(
+                        driverid=driver_id, 
+                        carid=carid, 
+                        modelid=modelid
+                    ).first()
+                    
+                    if not existing:
+                        # Add new driver-model assignment
+                        new_assignment = DriverModel(
+                            driverid=driver_id,
+                            carid=carid,
+                            modelid=modelid
+                        )
+                        db.session.add(new_assignment)
+                        db.session.commit()
+
+            elif form_type == 'remove_model':
+                carid = request.form.get('carid')
+                modelid = request.form.get('modelid')
+                
+                if carid and modelid:
+                    # Remove the driver-model assignment
+                    assignment = DriverModel.query.filter_by(
+                        driverid=driver_id,
+                        carid=carid,
+                        modelid=modelid
+                    ).first()
+                    
+                    if assignment:
+                        db.session.delete(assignment)
+                        db.session.commit()
+
+            # Redirect to refresh the page after POST
+            return redirect(f"/manage-cars/{driver_id}")
+
+        return render_template('driver_manage_cars.html', 
+                               driver=driver, 
+                               driver_models=driver_models, 
+                               available_models=available_models)
+
     @app.route('/problematic-drivers', methods=['GET'])
     def problematic_drivers():
         ssn = request.args.get('ssn')

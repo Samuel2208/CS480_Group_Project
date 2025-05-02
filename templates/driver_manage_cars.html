@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Manage Your Cars{% endblock %}
+{% block content %}
+<h1>Manage Your Cars</h1>
+<p>Driver: {{ driver.name }}</p>
+
+<div class="section">
+    <h2>Your Current Car Models</h2>
+    {% if driver_models %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Car Brand</th>
+                    <th>Model ID</th>
+                    <th>Color</th>
+                    <th>Construction Year</th>
+                    <th>Transmission</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for driver_model, car, model in driver_models %}
+                <tr>
+                    <td>{{ car.brand }}</td>
+                    <td>{{ model.modelid }}</td>
+                    <td>{{ model.color }}</td>
+                    <td>{{ model.construction_year }}</td>
+                    <td>{{ model.transmission }}</td>
+                    <td>
+                        <form method="POST" action="/manage-cars/{{ driver.driverid }}">
+                            <input type="hidden" name="form_type" value="remove_model">
+                            <input type="hidden" name="carid" value="{{ model.carid }}">
+                            <input type="hidden" name="modelid" value="{{ model.modelid }}">
+                            <button type="submit" class="btn-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You don't have any car models assigned yet. Add some below!</p>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>Add Car Models</h2>
+    {% if available_models %}
+        <form method="POST" action="/manage-cars/{{ driver.driverid }}">
+            <input type="hidden" name="form_type" value="add_model">
+            <label for="car_model">Select Car Model:</label>
+            <select name="car_model" id="car_model" required>
+                <option value="">-- Select a Car Model --</option>
+                {% for model, car in available_models %}
+                <option value="{{ model.carid }}-{{ model.modelid }}">
+                    {{ car.brand }} (Model ID: {{ model.modelid }}, Color: {{ model.color }}, Year: {{ model.construction_year }})
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit">Add Car Model</button>
+        </form>
+    {% else %}
+        <p>No available car models to add at this time.</p>
+    {% endif %}
+</div>
+
+<p><a href="/driver-dashboard/{{ driver.driverid }}">Back to Dashboard</a></p>
+{% endblock %}
