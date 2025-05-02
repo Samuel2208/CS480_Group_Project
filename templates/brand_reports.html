@@ -1,0 +1,23 @@
+{% block title %}<h1>Brand Report</h1>{% endblock %}
+{% block content %}
+
+<h3>Brand Usage Report</h3>
+
+<table border="1" cellpadding="8">
+  <tr>
+    <th>Brand</th>
+    <th>Average Driver Rating</th>
+    <th>Number of Rents</th>
+  </tr>
+  {% for row in results %}
+  <tr>
+    <td>{{ row.brand }}</td>
+    <td>{{ "%.2f"|format(row.avg_rating) if row.avg_rating else "N/A" }}</td>
+    <td>{{ row.rent_count }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<p><a href="{{ url_for('manager_dashboard', ssn=manager_ssn) }}">Return to Dashboard</a></p>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+{% block content %}
+
+<h2>Find Clients by City Relationships</h2>
+
+<form method="POST" action="/client-cross-city?ssn={{ manager_ssn }}">
+  <label for="city1">Client Address City (C1):</label>
+  <input type="text" id="city1" name="city1" required><br><br>
+
+  <label for="city2">Driver Address City (C2):</label>
+  <input type="text" id="city2" name="city2" required><br><br>
+
+  <button type="submit">Search</button>
+</form>
+
+{% if results %}
+  <h3>Results</h3>
+  <ul>
+    {% for client in results %}
+      <li>{{ client.name }} ({{ client.email }})</li>
+    {% endfor %}
+  </ul>
+{% elif request.method == 'POST' %}
+  <p>No matching clients found.</p>
+{% endif %}
+
+<p><a href="{{ url_for('manager_dashboard', ssn=manager_ssn) }}">Return to Dashboard</a></p>
+
+{% endblock %}

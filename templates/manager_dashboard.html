@@ -6,10 +6,13 @@ block content %}
 <p><strong>Email:</strong> {{ manager.email }}</p>
 
 <ul>
-  <li><a href="/manage-cars-models?ssn={{ manager.ssn }}">Add/Remove Cars and Models</a></li>
-  <li><a href="/manage-drivers?ssn={{ manager.ssn }}">Add/Remove Drivers</a></li>
+  <li><a href="/manage-cars-models?ssn={{ manager.ssn }}">Car and Model Manager</a></li>
+  <li><a href="/manage-drivers?ssn={{ manager.ssn }}">Driver Manager</a></li>
   <li><a href="/top-k-clients?ssn={{ manager.ssn }}">Top-K Clients by Rents</a></li>
   <li><a href="/driver-stats?ssn={{ manager.ssn }}">Driver Stats (Rents & Ratings)</a></li>
+  <li><a href="/client-cross-city?ssn={{ manager.ssn }}">Clients from City 1 Renting Drivers from City 2</a></li>
+  <li><a href="/problematic-drivers?ssn={{ manager.ssn }}">Local Problematic Drivers</a></li>
+  <li><a href="/brand-reports?ssn={{ manager.ssn }}">Brand Reports</a></li>
 </ul>
 
 <p><a href="/">Sign Out</a></p>

@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for
 from models import Client, Driver, Manager, Address, ClientAddress, CreditCard, Car, Model, Rent, DriverModel, Review
 from flask import flash
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, and_
 from datetime import datetime
 from sqlalchemy import text
 import re
@@ -399,9 +399,44 @@ def register_routes(app, db):
 
         return render_template('client_cross_city.html', results=results, manager_ssn=ssn)
 
+    @app.route('/problematic-drivers', methods=['GET'])
+    def problematic_drivers():
+        ssn = request.args.get('ssn')
+        query = text("""
+            SELECT d.name
+            FROM driver d
+            JOIN review r ON d.driverid = r.driverid
+            JOIN rent rt ON r.rent_id = rt.rent_id
+            JOIN client c ON r.client_id = c.client_id
+            JOIN clientaddress ca ON c.client_id = ca.client_id
+            WHERE d.city = 'Chicago'
+            GROUP BY d.driverid, d.name
+            HAVING AVG(r.rating) < 2.5
+            AND COUNT(DISTINCT CASE WHEN ca.city = 'Chicago' THEN r.client_id END) >= 2
+        """)
+        results = db.session.execute(query).fetchall()
+        return render_template('problematic_drivers.html', results=results, manager_ssn=ssn)
 
+    @app.route('/brand-reports')
+    def brand_reports():
+        ssn = request.args.get('ssn')
 
-    
+        query = text("""
+            SELECT c.brand,
+                AVG(r.rating) AS avg_rating,
+                COUNT(DISTINCT rt.rent_id) AS rent_count
+            FROM cars c
+            JOIN models m ON c.carid = m.carid
+            JOIN drivermodel dm ON m.carid = dm.carid AND m.modelid = dm.modelid
+            JOIN driver d ON dm.driverid = d.driverid
+            JOIN rent rt ON d.driverid = rt.driverid AND rt.carid = m.carid AND rt.modelid = m.modelid
+            JOIN review r ON rt.rent_id = r.rent_id
+            GROUP BY c.brand
+            ORDER BY c.brand
+        """)
+
+        results = db.session.execute(query).fetchall()
+        return render_template('brand_reports.html', results=results, manager_ssn=ssn)    
     #------------------------------------------------------------------------------------------------------------------------------------------#
     #----------------------------------------------------------------- CLIENT -----------------------------------------------------------------#
     #------------------------------------------------------------------------------------------------------------------------------------------#

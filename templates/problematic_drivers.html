@@ -1,0 +1,16 @@
+{% block title %}<h1>Problematic Local Drivers</h1>{% endblock %}
+{% block content %}
+<h3>Problematic Drivers in Chicago</h3>
+
+{% if results %}
+  <ul>
+    {% for row in results %}
+      <li><strong>{{ row.name }}</strong> (ID: {{ row.driverid }}) &mdash; Avg. Rating: {{ row.avg_rating }}</li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No problematic drivers found.</p>
+{% endif %}
+
+<p><a href="{{ url_for('manager_dashboard', ssn=manager_ssn) }}">Return to Dashboard</a></p>
+{% endblock %}
