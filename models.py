@@ -53,6 +53,8 @@ class Car(db.Model):
     carid = db.Column(db.Integer, primary_key=True)
     brand = db.Column(db.String(100), nullable=False)
 
+    models = db.relationship("Model", backref="car", cascade="all, delete-orphan", lazy=True)
+
 class Model(db.Model):
     __tablename__ = 'models'
     carid = db.Column(db.Integer, db.ForeignKey('cars.carid'), primary_key=True)

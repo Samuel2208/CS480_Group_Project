@@ -1,6 +1,7 @@
 from flask import render_template, request, redirect, url_for
-from models import Client, Driver, Manager, Address, ClientAddress, CreditCard, Car, Model
+from models import Client, Driver, Manager, Address, ClientAddress, CreditCard, Car, Model, DriverModel, Rent
 from flask import flash
+from sqlalchemy import text, func
 
 def register_routes(app, db):
     # Routing back to the home page
@@ -261,19 +262,28 @@ def register_routes(app, db):
             return redirect(f"/manage-cars-models?ssn={ssn}")
 
         cars = Car.query.all()
-        return render_template('manage_cars_models.html', cars=cars, manager_ssn=ssn)
+
+        # Rent count per model
+        model_usage = db.session.query(
+            Model.carid,
+            Model.modelid,
+            func.count(Rent.rent_id).label('rent_count')
+        ).outerjoin(
+            Rent, (Model.carid == Rent.carid) & (Model.modelid == Rent.modelid)
+        ).group_by(Model.carid, Model.modelid).all()
+
+        usage_lookup = {(entry.carid, entry.modelid): entry.rent_count for entry in model_usage}
+
+        return render_template("manage_cars_models.html", cars=cars, manager_ssn=ssn, usage_lookup=usage_lookup)
 
     @app.route('/manage-drivers', methods=['GET', 'POST'])
     def manage_drivers():
-        ssn = request.args.get('ssn')
-        if not ssn:
-            return "Missing manager SSN", 400
+        ssn = request.args.get('ssn', '1')
 
         if request.method == 'POST':
             form_type = request.form.get('form_type')
 
             if form_type == 'add_driver':
-                # Check and insert address if needed
                 street = request.form['street']
                 number = request.form['number']
                 city = request.form['city']
@@ -299,8 +309,94 @@ def register_routes(app, db):
                     db.session.delete(driver)
                     db.session.commit()
 
+            elif form_type == 'assign_model':
+                driverid = request.form['driverid']
+                car_model = request.form['car_model']
+                carid, modelid = map(int, car_model.split('-'))
+
+                existing = DriverModel.query.filter_by(driverid=driverid, carid=carid, modelid=modelid).first()
+                if not existing:
+                    assignment = DriverModel(driverid=driverid, carid=carid, modelid=modelid)
+                    db.session.add(assignment)
+                    db.session.commit()
+
+
+            elif form_type == 'remove_assignment':
+                driverid = request.form['driverid']
+                carid = request.form['carid']
+                modelid = request.form['modelid']
+                assignment = DriverModel.query.get((driverid, carid, modelid))
+                if assignment:
+                    db.session.delete(assignment)
+                    db.session.commit()
+
             return redirect(f"/manage-drivers?ssn={ssn}")
 
         drivers = Driver.query.all()
-        return render_template("manage_drivers.html", drivers=drivers, manager_ssn=ssn)
+        models = Model.query.all()
+        assignments = DriverModel.query.all()
+        return render_template("manage_drivers.html", drivers=drivers, models=models, assignments=assignments, manager_ssn=ssn)
+
+    @app.route('/top-k-clients', methods=['GET', 'POST'])
+    def top_k_clients():
+        ssn = request.args.get('ssn', '1')
+        clients = []
+        k = None
+
+        if request.method == 'POST':
+            k = int(request.form['k'])
+            query = text("""
+                SELECT c.name, c.email, COUNT(r.rent_id) AS rent_count
+                FROM client c
+                JOIN rent r ON c.client_id = r.client_id
+                GROUP BY c.client_id
+                ORDER BY rent_count DESC
+                LIMIT :k
+            """)
+            result = db.session.execute(query, {'k': k})
+            clients = result.fetchall()
+
+        return render_template('top_k_clients.html', clients=clients, k=k, manager_ssn=ssn)
+    
+    @app.route('/driver-stats')
+    def driver_stats():
+        ssn = request.args.get('ssn')
+        
+        query = text("""
+            SELECT 
+                d.name,
+                COUNT(r.rent_id) AS total_rents,
+                AVG(rv.rating) AS avg_rating
+            FROM driver d
+            LEFT JOIN rent r ON d.driverid = r.driverid
+            LEFT JOIN review rv ON d.driverid = rv.driverid
+            GROUP BY d.driverid, d.name
+        """)
+        results = db.session.execute(query).fetchall()
+
+        return render_template('view_driver_stats.html', stats=results, manager_ssn=ssn)
+
+    @app.route('/client-cross-city', methods=['GET', 'POST'])
+    def client_cross_city():
+        ssn = request.args.get('ssn')
+        results = []
+        
+        if request.method == 'POST':
+            city1 = request.form['city1']
+            city2 = request.form['city2']
+            
+            query = text("""
+                SELECT DISTINCT c.name, c.email
+                FROM client c
+                JOIN clientaddress ca ON c.client_id = ca.client_id
+                JOIN rent r ON c.client_id = r.client_id
+                JOIN driver d ON r.driverid = d.driverid
+                WHERE ca.city = :city1 AND d.city = :city2
+            """)
+            results = db.session.execute(query, {'city1': city1, 'city2': city2}).fetchall()
+
+        return render_template('client_cross_city.html', results=results, manager_ssn=ssn)
+
+
+
 
