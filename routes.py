@@ -45,6 +45,14 @@ def register_routes(app, db):
 
         # For GET request, render the login form
         return render_template('login_driver.html')
+    
+    # Signing into the driver dashboard
+    @app.route('/driver-dashboard/<driver_id>')
+    def driver_dashboard(driver_id):
+        driver = Driver.query.filter_by(driverid=driver_id).first()
+        if not Driver:
+            return "Driver not found", 404
+        return render_template('driver_dashboard.html', driver=driver)
 
     @app.route('/register-client', methods=['GET', 'POST'])
     def register_client():
@@ -138,7 +146,6 @@ def register_routes(app, db):
 
         return render_template('register_driver.html')
 
-
     # Routing to registering a new manager screen
     @app.route('/register-manager', methods=['GET', 'POST'])
     def register_manager():
@@ -173,8 +180,6 @@ def register_routes(app, db):
                 return render_template('invalid_credentials.html'), 401
         return render_template('login_manager.html')
 
-
-    
     # Signing into the Manager dashboard
     @app.route('/manager-dashboard/<ssn>')
     def manager_dashboard(ssn):

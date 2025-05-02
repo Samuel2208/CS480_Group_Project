@@ -2,12 +2,11 @@
 block content %}
 <h1>Driver Dashboard</h1>
 <p>
-  Welcome, {{ driver_name }}! You can manage your address and see the car models
+  Welcome, {{ driver.name }}! You can manage your address and see the car models
   you can drive.
 </p>
 <ul>
   <li><a href="/update-address">Update Address</a></li>
-  <li><a href="/view-car-models">View Car Models</a></li>
-  <li><a href="/declare-cars">Declare Cars You Can Drive</a></li>
+  <li><a href="/manage-cars">View and Manage Cars</a></li>
 </ul>
 {% endblock %}
