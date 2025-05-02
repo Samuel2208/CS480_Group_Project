@@ -5,8 +5,6 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 
-DATABASE_URI = os.getenv('DATABASE_URL')
-
 class Base(DeclarativeBase):
   pass
 
@@ -14,6 +12,12 @@ db = SQLAlchemy(model_class=Base)
 
 def create_app():
     app = Flask(__name__, template_folder='templates')
+
+    load_dotenv()
+    DATABASE_URI = os.getenv('DATABASE_URI')
+    
+    if not DATABASE_URI:
+        raise ValueError("DATABASE_URI not set in environment variables.")
 
     # db configuration
     # db connection URI uses the format: "dialect://username:password@host:port/database"
