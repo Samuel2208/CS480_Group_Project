@@ -52,7 +52,6 @@ class Car(db.Model):
     __tablename__ = 'cars'
     carid = db.Column(db.Integer, primary_key=True)
     brand = db.Column(db.String(100), nullable=False)
-
     models = db.relationship("Model", backref="car", cascade="all, delete-orphan", lazy=True)
 
 class Model(db.Model):

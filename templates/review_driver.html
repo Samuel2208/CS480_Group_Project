@@ -1,0 +1,32 @@
+{% extends "base.html" %} 
+{% block title %}Review a Driver{% endblock %} 
+
+{% block content %}
+<h1>Your Bookings</h1>
+{% for booking in bookings %}
+    <p>
+        Review driver {{ booking.driver_name }} for booking on {{ booking.rent_date }}:
+        <a href="{{ url_for('submit_review', rent_id=booking.rent_id) }}">Review this Driver</a>
+    </p>
+{% endfor %}
+
+<hr>
+
+<h1>Leave a Review for a Driver</h1>
+<form method="POST" action="/review-driver?client_id={{ client_id }}">
+    <label for="driver_id">Driver:</label>
+    <select name="driver_id" id="driver_id">
+      {% for driver in drivers %}
+        <option value="{{ driver.driverid }}">{{ driver.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="rating">Rating (1-5):</label>
+    <input type="number" name="rating" min="1" max="5" required>
+
+    <label for="comment">Comment:</label>
+    <textarea name="comment" required></textarea>
+
+    <input type="submit" value="Submit Review">
+</form>
+{% endblock %}

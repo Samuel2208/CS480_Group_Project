@@ -1,7 +1,10 @@
 from flask import render_template, request, redirect, url_for
-from models import Client, Driver, Manager, Address, ClientAddress, CreditCard, Car, Model, DriverModel, Rent
+from models import Client, Driver, Manager, Address, ClientAddress, CreditCard, Car, Model, Rent, DriverModel, Review
 from flask import flash
-from sqlalchemy import text, func
+from sqlalchemy import func, distinct
+from datetime import datetime
+from sqlalchemy import text
+import re
 
 def register_routes(app, db):
     # Routing back to the home page
@@ -19,7 +22,7 @@ def register_routes(app, db):
             
             if client:
                 # Redirect the client to their dashboard or another page after successful login
-                return redirect(url_for('client_dashboard', client_id=client.id))
+                return redirect(url_for('client_dashboard', client_id=client.client_id))
             else:
                 # If the client doesn't exist, show an error message
                 return render_template('invalid_credentials.html', role="Client"), 401
@@ -60,53 +63,52 @@ def register_routes(app, db):
         if request.method == 'POST':
             name = request.form['name']
             email = request.form['email']
-            street = request.form['street']
-            number = request.form['number']
-            city = request.form['city']
-            card_number = request.form['credit-card']
-
-            # Step 1: Ensure address exists
-            address = Address.query.filter_by(street=street, number=number, city=city).first()
-            if not address:
-                address = Address(street=street, number=number, city=city)
-                db.session.add(address)
-                db.session.commit()
-
-            # Step 2: Create client
             new_client = Client(name=name, email=email)
             db.session.add(new_client)
             db.session.commit()
 
-            # Step 3: Add client address
-            client_address = ClientAddress(
-                client_id=new_client.client_id,
-                street=street,
-                number=number,
-                city=city
-            )
-            db.session.add(client_address)
+            client_id = new_client.client_id  # ✅ correct field name
 
-            # Step 4: Add credit card
-            credit_card = CreditCard(
-                card_number=card_number,
-                client_id=new_client.client_id,
-                street=street,
-                number=number,
-                city=city
-            )
-            db.session.add(credit_card)
+            # Add up to 2 addresses
+            for i in [1, 2]:
+                street = request.form.get(f'street{i}')
+                number = request.form.get(f'number{i}')
+                city = request.form.get(f'city{i}')
+                if street and number and city:
+                    address = Address.query.filter_by(street=street, number=number, city=city).first()
+                    if not address:
+                        address = Address(street=street, number=number, city=city)
+                        db.session.add(address)
+                        db.session.commit()
+                    db.session.add(ClientAddress(client_id=client_id, street=address.street, number=address.number, city=address.city))
+
+            # Add up to 2 credit cards
+            for i in [1, 2]:
+                card = request.form.get(f'card{i}')
+                street = request.form.get(f'card_street{i}')
+                number = request.form.get(f'card_number{i}')
+                city = request.form.get(f'card_city{i}')
+                if card and street and number and city:
+                    billing_address = Address.query.filter_by(street=street, number=number, city=city).first()
+                    if not billing_address:
+                        billing_address = Address(street=street, number=number, city=city)
+                        db.session.add(billing_address)
+                        db.session.commit()
+                    db.session.add(CreditCard(
+                    card_number=card,
+                    client_id=client_id,
+                    street=billing_address.street,
+                    number=billing_address.number,
+                    city=billing_address.city
+                    )
+                )
 
             db.session.commit()
-
-            return f"""
-                <h2>✅ Client {name} registered successfully!</h2>
-                <p><a href="/">Return to Home</a></p>
-                <form action="/login-client" method="get">
-                    <button type="submit">Login Now</button>
-                </form>
-            """
+            return redirect(url_for('login_client'))
 
         return render_template('register_client.html')
+
+
 
     @app.route('/register-driver', methods=['GET', 'POST'])
     def register_driver():
@@ -370,4 +372,197 @@ def register_routes(app, db):
 
 
 
+    
+    #------------------------------------------------------------------------------------------------------------------------------------------#
+    #----------------------------------------------------------------- CLIENT -----------------------------------------------------------------#
+    #------------------------------------------------------------------------------------------------------------------------------------------#
 
+    @app.route('/client-dashboard')
+    def client_dashboard():
+        client_id = request.args.get('client_id')
+        client = Client.query.get(client_id)
+        return render_template("client_dashboard.html", client_name=client.name, client_id=client.client_id)
+
+
+    @app.route('/search-cars', methods=['GET'])
+    def search_cars():
+        selected_date = request.args.get('date')
+        if not selected_date:
+            return render_template('search_cars.html', available_cars=[])
+
+        # Convert date input to datetime object
+        try:
+            selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+        except ValueError:
+            return render_template('search_cars.html', available_cars=[])
+
+        # Step 1: Find all model IDs that are already rented on this date
+        rented_model_ids = db.session.query(Car.model_id).join(Car.rents).filter(
+            func.date(Rent.date) == selected_date
+        ).distinct()
+
+        # Step 2: Find all model IDs with at least one qualified, available driver on this date
+        qualified_models = db.session.query(Model).join(Driver.can_drive).filter(
+            ~Driver.rents.any(func.date(Rent.date) == selected_date)
+        ).filter(
+            ~Model.id.in_(rented_model_ids)
+        ).distinct().all()
+
+        return render_template('search_cars.html', available_cars=qualified_models)
+
+
+    @app.route("/view-rents")
+    def view_rents():
+        client_id = request.args.get("client_id")
+
+        bookings = db.session.query(
+            Rent.rent_date,
+            Model.modelid,
+            Model.color,
+            Car.carid,
+            Driver.name.label("driver_name")
+        ).join(Model, (Rent.modelid == Model.modelid) & (Rent.carid == Model.carid))\
+        .join(Car, Rent.carid == Car.carid)\
+        .join(Driver, Rent.driverid == Driver.driverid)\
+        .filter(Rent.client_id == client_id)\
+        .order_by(Rent.rent_date.asc()).all()
+
+        return render_template("view_rents.html", bookings=bookings)
+
+    @app.route("/review-driver", methods=["GET", "POST"])
+    def review_driver():
+        client_id = request.args.get("client_id")
+
+        if request.method == "POST":
+            driver_id = request.form["driver_id"]
+            rating = request.form["rating"]
+            comment = request.form["comment"]
+
+            review = Review(
+                client_id=client_id,
+                driverid=driver_id,
+                rating=rating,
+                comment=comment
+            )
+            db.session.add(review)
+            db.session.commit()
+            flash("Review submitted!", "success")
+            return redirect(url_for("review_driver", client_id=client_id))
+
+        bookings = db.session.query(
+            Rent.rent_id,
+            Rent.rent_date,
+            Model.modelid,
+            Model.color,
+            Car.carid,
+            Driver.driverid,
+            Driver.name.label("driver_name")
+        ).join(Model, (Rent.modelid == Model.modelid) & (Rent.carid == Model.carid))\
+        .join(Car, Rent.carid == Car.carid)\
+        .join(Driver, Rent.driverid == Driver.driverid)\
+        .filter(Rent.client_id == client_id)\
+        .order_by(Rent.rent_date.asc()).all()
+
+        drivers = Driver.query.all()
+
+        return render_template("review_driver.html", bookings=bookings, drivers=drivers, client_id=client_id)
+
+
+    @app.route("/book-rent", methods=["GET", "POST"])
+    def book_rent():
+        client_id = request.args.get("client_id") if request.method == "GET" else request.form.get("client_id")
+
+        if not client_id:
+            return "Client ID required", 400
+
+        client_id = int(client_id)
+
+        if request.method == "POST":
+            model_id = request.form.get("car_model")
+            date_str = request.form.get("date")
+            best_driver = request.form.get("best_driver")
+
+            if not model_id or not date_str:
+                return "Missing data", 400
+
+            try:
+                rent_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                return "Invalid date format", 400
+
+            # Extract carid from car_model string like "Model 222 (Car 123)"
+            match = re.search(r'\(Car (\d+)\)', model_id)
+            if not match:
+                return "Invalid car model format", 400
+            carid = int(match.group(1))
+            modelid = int(model_id.split()[1])
+
+            selected_model = Model.query.filter_by(carid=carid, modelid=modelid).first()
+            if not selected_model:
+                return "Model not found", 404
+
+            if best_driver:  # checkbox selected
+                # Get drivers who can drive this car+model and are not booked for the same date
+                eligible_drivers = db.session.query(DriverModel.driverid).filter_by(carid=car_id, modelid=model_id).subquery()
+                
+                available_drivers = db.session.query(Driver).filter(Driver.driverid.in_(eligible_drivers)).filter(
+                    ~db.session.query(Rent).filter(
+                        and_(
+                            Rent.rent_date == rent_date,
+                            Rent.driverid == Driver.driverid
+                        )
+                    ).exists()
+                ).all()
+
+                # Calculate average rating for each available driver
+                best_driver_id = None
+                highest_avg = -1
+                for driver in available_drivers:
+                    ratings = db.session.query(Review.rating).filter_by(driverid=driver.driverid).all()
+                    avg = sum(r[0] for r in ratings) / len(ratings) if ratings else 0
+                    if avg > highest_avg:
+                        highest_avg = avg
+                        best_driver_id = driver.driverid
+
+                if not best_driver_id:
+                    return "No available drivers for this model on that date."
+                driver_id = best_driver_id
+            else:
+                rent = Rent(
+                    rent_date=rent_date,
+                    client_id=client_id,
+                    carid=selected_model.carid,
+                    modelid=selected_model.modelid,
+                    driverid=1  # dummy for now
+                )
+                db.session.add(rent)
+                db.session.commit()
+                return redirect(url_for("client_dashboard", client_id=client_id))
+
+        models = Model.query.all()
+        model_choices = [f"Model {m.modelid} (Car {m.carid})" for m in models]
+        return render_template("book_rent.html", models=model_choices, client_id=client_id)
+    
+    @app.route('/submit-review', methods=['POST'])
+    def submit_review():
+        client_id = request.form.get("client_id")
+        driver_id = request.form.get("driver_id")
+        rating = request.form.get("rating")
+        message = request.form.get("message")
+
+        # Check if this client ever had a rent with this driver
+        valid_rent = db.session.query(Rent).filter_by(client_id=client_id, driverid=driver_id).first()
+
+        if not valid_rent:
+            return "You can't review this driver – no rental history."
+
+        new_review = Review(
+            driverid=driver_id,
+            client_id=client_id,
+            rent_id=valid_rent.rent_id,
+            message=message,
+            rating=int(rating)
+        )
+        db.session.add(new_review)
+        db.session.commit()
+        return redirect(f"/client-dashboard?client_id={client_id}")
