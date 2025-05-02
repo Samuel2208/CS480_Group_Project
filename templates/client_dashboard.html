@@ -5,7 +5,8 @@ block content %}
   Welcome, {{ client_name }}! You can book a car or view your past bookings.
 </p>
 <ul>
-  <li><a href="/book-rent">Book a Car</a></li>
-  <li><a href="/view-rents">View Your Bookings</a></li>
+  <a href="{{ url_for('book_rent', client_id=client_id) }}">Book a Car</a>
+  <li><a href="/view-rents?client_id={{ client_id }}">View Your Bookings</a></li>
 </ul>
+  <li><a href="/review-driver?client_id={{ client_id }}">Review a Driver</a></li>
 {% endblock %}

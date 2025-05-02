@@ -1,16 +1,22 @@
-{% extends "base.html" %} {% block title %}Book Rent{% endblock %} {% block
-content %}
+{% extends "base.html" %} 
+{% block title %}Book Rent{% endblock %} 
+{% block content %}
 <h1>Book a Rent</h1>
-<form method="POST" action="/book-rent">
+<form method="POST">
+  <input type="hidden" name="client_id" value="{{ client_id }}">
+
   <label for="car_model">Car Model:</label>
-  <select id="car_model" name="car_model" required>
-    {% for model in available_models %}
-    <option value="{{ model.id }}">{{ model.name }}</option>
-    {% endfor %}
+  <select name="car_model" id="car_model">
+      {% for model in models %}
+          <option value="{{ model }}">{{ model }}</option>
+      {% endfor %}
   </select>
 
   <label for="date">Rent Date:</label>
-  <input type="date" id="date" name="date" required />
+  <input type="date" name="date" id="date">
+
+  <input type="checkbox" name="best_driver" id="best_driver">
+  <label for="best_driver">Book with best driver</label>
 
   <button type="submit">Book</button>
 </form>

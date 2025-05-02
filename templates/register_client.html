@@ -1,5 +1,6 @@
-{% extends "base.html" %} {% block title %}Register as Client{% endblock %} {%
-block content %}
+{% extends "base.html" %} 
+{% block title %}Register as Client{% endblock %} 
+{% block content %}
 <h1>Register as a Client</h1>
 <form action="/register-client" method="POST">
   <label for="name">Name:</label>
@@ -8,17 +9,33 @@ block content %}
   <label for="email">Email:</label>
   <input type="email" id="email" name="email" required />
 
-  <label for="number">Number:</label>
-  <input type="text" id="number" name="number" required />
+  <h3>Addresses</h3>
+  <div>
+    <label>Street 1:</label><input type="text" name="street1" required />
+    <label>Number 1:</label><input type="text" name="number1" required />
+    <label>City 1:</label><input type="text" name="city1" required />
+  </div>
+  <div>
+    <label>Street 2:</label><input type="text" name="street2" />
+    <label>Number 2:</label><input type="text" name="number2" />
+    <label>City 2:</label><input type="text" name="city2" />
+  </div>
 
-  <label for="street">Street:</label>
-  <input type="text" id="street" name="street" required />
-
-  <label for="city">City:</label>
-  <input type="text" id="city" name="city" required />
-
-  <label for="credit-card">Credit Card:</label>
-  <input type="text" id="credit-card" name="credit-card" required />
+  <h3>Credit Cards</h3>
+  <div>
+    <label>Card Number 1:</label><input type="text" name="card1" required />
+    <label>Payment Address (Street, Number, City):</label>
+    <input type="text" name="card_street1" required />
+    <input type="text" name="card_number1" required />
+    <input type="text" name="card_city1" required />
+  </div>
+  <div>
+    <label>Card Number 2:</label><input type="text" name="card2" />
+    <label>Payment Address (Street, Number, City):</label>
+    <input type="text" name="card_street2" />
+    <input type="text" name="card_number2" />
+    <input type="text" name="card_city2" />
+  </div>
 
   <button type="submit">Register</button>
 </form>
