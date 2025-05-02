@@ -57,6 +57,35 @@ def register_routes(app, db):
         if not Driver:
             return "Driver not found", 404
         return render_template('driver_dashboard.html', driver=driver)
+    
+    # Updating the driver address
+    @app.route('/update-address/<driver_id>', methods=['GET', 'POST'])
+    def update_address(driver_id):
+        driver = Driver.query.filter_by(driverid=driver_id).first()
+        if not driver:
+            return "Driver not found", 404
+
+        if request.method == 'POST':
+            street = request.form['street']
+            number = request.form['number']
+            city = request.form['city']
+
+            # Step 1: Ensure address exists in address table
+            address = Address.query.filter_by(street=street, number=number, city=city).first()
+            if not address:
+                address = Address(street=street, number=number, city=city)
+                db.session.add(address)
+                db.session.commit()
+
+            # Step 2: Update driver's address
+            driver.street = street
+            driver.number = number  
+            driver.city = city      
+            db.session.commit()
+
+            return redirect(f"/driver-dashboard/{driver_id}")   
+           
+        return render_template('update_address.html', driver=driver)
 
     @app.route('/register-client', methods=['GET', 'POST'])
     def register_client():
