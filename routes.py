@@ -4,6 +4,7 @@ from flask import flash
 from sqlalchemy import func, distinct, and_
 from datetime import datetime
 from sqlalchemy import text
+import ast
 import re
 
 def register_routes(app, db):
@@ -521,11 +522,45 @@ def register_routes(app, db):
     #----------------------------------------------------------------- CLIENT -----------------------------------------------------------------#
     #------------------------------------------------------------------------------------------------------------------------------------------#
 
-    @app.route('/client-dashboard')
-    def client_dashboard():
+    @app.route('/available-models', methods=['GET', 'POST'])
+    def available_models():
         client_id = request.args.get('client_id')
+        if not client_id:
+            return "Missing client ID", 400
+        
+        models = []
+        selected_date = None
+
+        if request.method == 'POST':
+            selected_date = request.form['date']
+
+            query = text("""
+                SELECT m.carid, m.modelid, m.color, m.construction_year, m.transmission
+                FROM models m
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM rent r
+                    WHERE r.carid = m.carid AND r.modelid = m.modelid AND r.rent_date = :date
+                )
+                AND EXISTS (
+                    SELECT 1 FROM drivermodel dm
+                    WHERE dm.carid = m.carid AND dm.modelid = m.modelid
+                    AND NOT EXISTS (
+                        SELECT 1 FROM rent r2
+                        WHERE r2.driverid = dm.driverid AND r2.rent_date = :date
+                    )
+                )
+            """)
+            result = db.session.execute(query, {'date': selected_date})
+            models = result.fetchall()
+
+        return render_template('available_models.html', models=models, date=selected_date, client_id=client_id)
+
+
+    @app.route('/client-dashboard/<int:client_id>')
+    def client_dashboard(client_id):
         client = Client.query.get(client_id)
-        return render_template("client_dashboard.html", client_name=client.name, client_id=client.client_id)
+        return render_template("client_dashboard.html", client=client)
+
 
 
     @app.route('/search-cars', methods=['GET'])
@@ -559,6 +594,11 @@ def register_routes(app, db):
     def view_rents():
         client_id = request.args.get("client_id")
 
+        if not client_id or not client_id.isdigit():
+            return "Missing or invalid client ID", 400
+
+        client_id = int(client_id)
+
         bookings = db.session.query(
             Rent.rent_date,
             Model.modelid,
@@ -571,7 +611,7 @@ def register_routes(app, db):
         .filter(Rent.client_id == client_id)\
         .order_by(Rent.rent_date.asc()).all()
 
-        return render_template("view_rents.html", bookings=bookings)
+        return render_template("view_rents.html", bookings=bookings, client_id=client_id)
 
     @app.route("/review-driver", methods=["GET", "POST"])
     def review_driver():
@@ -622,11 +662,11 @@ def register_routes(app, db):
         client_id = int(client_id)
 
         if request.method == "POST":
-            model_id = request.form.get("car_model")
+            model_data = request.form.get("car_model")
             date_str = request.form.get("date")
             best_driver = request.form.get("best_driver")
 
-            if not model_id or not date_str:
+            if not model_data or not date_str:
                 return "Missing data", 400
 
             try:
@@ -634,69 +674,90 @@ def register_routes(app, db):
             except ValueError:
                 return "Invalid date format", 400
 
-            # Extract carid from car_model string like "Model 222 (Car 123)"
-            match = re.search(r'\(Car (\d+)\)', model_id)
-            if not match:
+            try:
+                # Safely parse the tuple string to extract carid and modelid
+                model_tuple = ast.literal_eval(model_data)
+                selected_carid = int(model_tuple[0])
+                selected_modelid = int(model_tuple[1])
+            except (ValueError, SyntaxError, TypeError):
                 return "Invalid car model format", 400
-            carid = int(match.group(1))
-            modelid = int(model_id.split()[1])
 
-            selected_model = Model.query.filter_by(carid=carid, modelid=modelid).first()
+            # Check if the model exists
+            selected_model = Model.query.filter_by(carid=selected_carid, modelid=selected_modelid).first()
             if not selected_model:
                 return "Model not found", 404
 
-            if best_driver:  # checkbox selected
-                # Get drivers who can drive this car+model and are not booked for the same date
-                eligible_drivers = db.session.query(DriverModel.driverid).filter_by(carid=car_id, modelid=model_id).subquery()
-                
-                available_drivers = db.session.query(Driver).filter(Driver.driverid.in_(eligible_drivers)).filter(
-                    ~db.session.query(Rent).filter(
-                        and_(
-                            Rent.rent_date == rent_date,
-                            Rent.driverid == Driver.driverid
-                        )
-                    ).exists()
-                ).all()
+            # Find eligible drivers
+            eligible_drivers_query = db.session.query(Driver.driverid).join(DriverModel).filter(
+                DriverModel.carid == selected_carid,
+                DriverModel.modelid == selected_modelid
+            ).subquery()
 
-                # Calculate average rating for each available driver
+            available_driver = db.session.query(Driver).filter(
+                Driver.driverid.in_(eligible_drivers_query),
+                ~db.session.query(Rent).filter(
+                    and_(
+                        Rent.rent_date == rent_date,
+                        Rent.driverid == Driver.driverid
+                    )
+                ).exists()
+            ).all()
+
+            if not available_driver:
+                return "No available driver for this car model on the selected date.", 400
+
+            # Choose the best or arbitrary driver
+            if best_driver:
                 best_driver_id = None
-                highest_avg = -1
-                for driver in available_drivers:
+                highest_rating = -1
+                for driver in available_driver:
                     ratings = db.session.query(Review.rating).filter_by(driverid=driver.driverid).all()
                     avg = sum(r[0] for r in ratings) / len(ratings) if ratings else 0
-                    if avg > highest_avg:
-                        highest_avg = avg
+                    if avg > highest_rating:
                         best_driver_id = driver.driverid
-
-                if not best_driver_id:
-                    return "No available drivers for this model on that date."
-                driver_id = best_driver_id
+                        highest_rating = avg
+                chosen_driver_id = best_driver_id
             else:
-                rent = Rent(
-                    rent_date=rent_date,
-                    client_id=client_id,
-                    carid=selected_model.carid,
-                    modelid=selected_model.modelid,
-                    driverid=1  # dummy for now
-                )
-                db.session.add(rent)
-                db.session.commit()
-                return redirect(url_for("client_dashboard", client_id=client_id))
+                chosen_driver_id = available_driver[0].driverid
 
+            # Book the rent
+            new_rent = Rent(
+                rent_date=rent_date,
+                client_id=client_id,
+                carid=selected_carid,
+                modelid=selected_modelid,
+                driverid=chosen_driver_id
+            )
+            db.session.add(new_rent)
+            db.session.commit()
+            return redirect(url_for("client_dashboard", client_id=client_id))
+
+        # GET request — show form
         models = Model.query.all()
-        model_choices = [f"Model {m.modelid} (Car {m.carid})" for m in models]
+        model_choices = [(m.carid, m.modelid, m.color, m.construction_year, m.transmission) for m in models]
         return render_template("book_rent.html", models=model_choices, client_id=client_id)
+
     
-    @app.route('/submit-review', methods=['POST'])
+    @app.route('/submit-review', methods=['GET', 'POST'])
     def submit_review():
+        if request.method == 'GET':
+            rent_id = request.args.get("rent_id")
+            client_id = request.args.get("client_id")
+
+            rent = Rent.query.get(rent_id)
+            if not rent:
+                return "Invalid rent ID", 404
+
+            driver = Driver.query.get(rent.driverid)
+            return render_template("submit_review_form.html", rent=rent, driver=driver, client_id=client_id)
+
+        # POST: submitting the review
         client_id = request.form.get("client_id")
         driver_id = request.form.get("driver_id")
         rating = request.form.get("rating")
         message = request.form.get("message")
 
-        # Check if this client ever had a rent with this driver
         valid_rent = db.session.query(Rent).filter_by(client_id=client_id, driverid=driver_id).first()
-
         if not valid_rent:
             return "You can't review this driver – no rental history."
 
@@ -709,4 +770,4 @@ def register_routes(app, db):
         )
         db.session.add(new_review)
         db.session.commit()
-        return redirect(f"/client-dashboard?client_id={client_id}")
+        return redirect(f"/client-dashboard/{client_id}")

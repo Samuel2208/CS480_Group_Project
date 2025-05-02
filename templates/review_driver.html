@@ -1,12 +1,11 @@
-{% extends "base.html" %} 
-{% block title %}Review a Driver{% endblock %} 
+{% extends "base.html" %}
+{% block title %}Review a Driver{% endblock %}
 
 {% block content %}
 <h1>Your Bookings</h1>
 {% for booking in bookings %}
     <p>
-        Review driver {{ booking.driver_name }} for booking on {{ booking.rent_date }}:
-        <a href="{{ url_for('submit_review', rent_id=booking.rent_id) }}">Review this Driver</a>
+        You rented from driver <strong>{{ booking.driver_name }}</strong> on <strong>{{ booking.rent_date }}</strong>
     </p>
 {% endfor %}
 
@@ -15,18 +14,20 @@
 <h1>Leave a Review for a Driver</h1>
 <form method="POST" action="/review-driver?client_id={{ client_id }}">
     <label for="driver_id">Driver:</label>
-    <select name="driver_id" id="driver_id">
+    <select name="driver_id" id="driver_id" required>
       {% for driver in drivers %}
         <option value="{{ driver.driverid }}">{{ driver.name }}</option>
       {% endfor %}
-    </select>
+    </select><br><br>
 
     <label for="rating">Rating (1-5):</label>
-    <input type="number" name="rating" min="1" max="5" required>
+    <input type="number" name="rating" min="1" max="5" required><br><br>
 
-    <label for="comment">Comment:</label>
-    <textarea name="comment" required></textarea>
+    <label for="message">Comment:</label><br>
+    <textarea name="message" rows="4" cols="50" required></textarea><br><br>
 
     <input type="submit" value="Submit Review">
 </form>
+
+<p><a href="{{ url_for('client_dashboard', client_id=client_id) }}">Return to Dashboard</a></p>
 {% endblock %}

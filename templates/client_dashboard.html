@@ -2,11 +2,12 @@
 block content %}
 <h1>Client Dashboard</h1>
 <p>
-  Welcome, {{ client_name }}! You can book a car or view your past bookings.
+  Welcome, {{ client.name }}! You can book a car or view your past bookings.
 </p>
 <ul>
-  <a href="{{ url_for('book_rent', client_id=client_id) }}">Book a Car</a>
-  <li><a href="/view-rents?client_id={{ client_id }}">View Your Bookings</a></li>
+  <li><a href="{{ url_for('available_models', client_id=client.client_id) }}">View Available Models</a></li>
+  <li><a href="{{ url_for('book_rent', client_id=client.client_id) }}">Book a Car</a></li>
+  <li><a href="{{ url_for('view_rents', client_id=client.client_id) }}">View Rents</a></li>
+  <li><a href="{{ url_for('review_driver', client_id=client.client_id) }}">Review a Driver</a></li>
 </ul>
-  <li><a href="/review-driver?client_id={{ client_id }}">Review a Driver</a></li>
 {% endblock %}

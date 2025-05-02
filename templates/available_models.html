@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Available Car Models{% endblock %}
+{% block content %}
+
+<h2>Check Available Models</h2>
+
+<form method="POST" action="{{ url_for('available_models') }}?client_id={{ client_id }}">
+    <label>Select Date:</label>
+    <input type="date" name="date" required>
+    <button type="submit">Check Availability</button>
+</form>
+
+{% if date %}
+    <h3>Available Models on {{ date }}</h3>
+    {% if models %}
+        <ul>
+        {% for m in models %}
+            <li>
+                Model {{ m.modelid }} (Car {{ m.carid }}):
+                {{ m.color }}, {{ m.construction_year }}, {{ m.transmission }}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No available models on this date.</p>
+    {% endif %}
+{% endif %}
+
+<p><a href="{{ url_for('client_dashboard', client_id=client_id) }}">Return to Dashboard</a></p>
+
+{% endblock %}
